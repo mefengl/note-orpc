@@ -1,66 +1,115 @@
+# GitHub Actions 工作流程的名称
 name: Release
 
+# 定义工作流程触发的事件
 on:
+  # 允许手动触发此工作流程
   workflow_dispatch:
+    # 定义手动触发时需要输入的参数
     inputs:
+      # 版本号参数
       version:
+        # 参数描述，提示用户输入格式
         description: 'Bump version (e.g., 4.0.0, 4.1.0-alpha.1, 5.0.0-beta.2)'
+        # 此参数为必填项
         required: true
+        # 参数类型为字符串
         type: string
 
+# 工作流程并发控制
 concurrency:
+  # 定义并发组，确保同一分支（或 ref）的同一工作流程只有一个实例在运行
   group: ${{ github.workflow }}-${{ github.ref }}
+  # 当新的工作流程实例启动时，不取消正在进行的实例
   cancel-in-progress: false
 
+# 定义工作流程包含的任务 (jobs)
 jobs:
+  # --- 任务: 发布 (Release) ---
   release:
+    # 指定运行此任务的虚拟机环境
     runs-on: ubuntu-latest
+    # 为此任务授予的权限
     permissions:
-      contents: write
-      id-token: write
+      contents: write # 允许写入仓库内容（例如提交版本更新）
+      id-token: write # 允许获取 OIDC ID 令牌（用于 npm provenance 等无密码发布）
+    # 定义此任务包含的步骤 (steps)
     steps:
-      - id: version
+      # 步骤 1: 校验并解析输入的版本号
+      - id: version # 给此步骤设置一个 ID，方便后续引用其输出
         run: |
+          # 获取输入的版本号
           VERSION="${{ github.event.inputs.version }}"
 
-          if [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([a-z]+)\.([1-9][0-9]*))?$ ]]; then
+          # 使用正则表达式校验版本号格式是否符合 SemVer (主.次.补丁[-预发布标识.数字])
+          if [[ $VERSION =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(\-(latest|([a-z]+))\.([1-9][0-9]*))?$ ]]; then
+            # 检查预发布标识符是否为 'latest'，不允许
             if [[ "${BASH_REMATCH[5]}" == "latest" ]]; then
               echo "INVALID VERSION FORMAT ('latest' is not allowed): $VERSION" >&2
               exit 1
             fi
 
+            # 将解析出的版本部分设置为 GitHub Actions 的输出变量
             echo "major=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
             echo "minor=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
             echo "patch=${BASH_REMATCH[3]}" >> $GITHUB_OUTPUT
-            echo "preid=${BASH_REMATCH[5]}" >> $GITHUB_OUTPUT
-            echo "number=${BASH_REMATCH[6]}" >> $GITHUB_OUTPUT
+            # 预发布标识符 (如 alpha, beta)，如果没有则为空
+            echo "preid=${BASH_REMATCH[6]}" >> $GITHUB_OUTPUT 
+            # 预发布版本号，如果没有则为空
+            echo "number=${BASH_REMATCH[7]}" >> $GITHUB_OUTPUT
           else
+            # 如果版本号格式不匹配，则输出错误并退出
             echo "INVALID VERSION FORMAT: $VERSION" >&2
             exit 1
           fi
 
+      # 步骤 2: 拉取代码
+      # 使用 actions/checkout@v4 动作
       - uses: actions/checkout@v4
         with:
+          # 拉取所有历史记录，这对于生成 Changelog 或版本管理工具可能是必需的
           fetch-depth: 0
 
+      # 步骤 3: 设置 pnpm 包管理器
       - uses: pnpm/action-setup@v4
 
+      # 步骤 4: 安装项目依赖
       - run: pnpm i
 
+      # 步骤 5: 配置 Git 用户信息
+      # 设置提交代码时使用的用户名和邮箱，通常使用机器人账户
       - run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      # 步骤 6: 升级包版本
+      # 执行 'pnpm run packages:bump <version> --yes' 命令
+      # 这个脚本通常会更新所有 workspace 包的 version 字段，并可能创建 git commit 和 tag
+      # <version> 来自于手动输入的版本号
+      # --yes 参数通常用于跳过交互式确认
       - run: pnpm run packages:bump ${{ github.event.inputs.version }} --yes
 
+      # 步骤 7: 配置 npm 认证令牌
+      # 将存储在 GitHub Secrets 中的 NPM_TOKEN 写入到 .npmrc 文件中，用于发布权限
       - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
+          # 从 GitHub Secrets 中读取 NPM_TOKEN
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # 步骤 8: 发布包到 npm
+      # 执行 'pnpm run packages:publish --tag=<tag>' 命令
+      # 这个脚本会将所有需要发布的包发布到 npm 仓库
+      # --tag 参数决定了发布到 npm 的标签。如果是预发布版本 (alpha, beta 等)，则使用对应的 preid；否则使用 'latest'
       - run: pnpm run packages:publish --tag=${{ steps.version.outputs.preid || 'latest' }}
         env:
+          # 启用 npm provenance，增强包来源的可追溯性和安全性
           NPM_CONFIG_PROVENANCE: true
 
+      # 步骤 9: 生成 GitHub Changelog
+      # 执行 'pnpm run packages:changelog:github' 命令
+      # 这个脚本通常会根据 commit 历史或 changesets 信息生成 Markdown 格式的 Changelog
+      # 并可能利用 GITHUB_TOKEN 将其发布到 GitHub Releases 页面
       - run: pnpm run packages:changelog:github
         env:
+          # 从 GitHub Secrets 中读取 GITHUB_TOKEN，用于与 GitHub API 交互
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,47 +1,86 @@
+# GitHub Actions 工作流程的名称
 name: CI
 
+# 定义工作流程触发的事件
 on:
+  # 当有代码推送到 main 分支时触发
   push:
     branches: [main]
+  # 当有 Pull Request 指向 main 分支时触发（例如创建 PR、同步 PR 分支等）
   pull_request:
     branches: [main]
 
+# 定义工作流程包含的任务 (jobs)
 jobs:
+  # --- 任务 1: 代码检查 (Linting) ---
   lint:
+    # 指定运行此任务的虚拟机环境，这里使用最新的 Ubuntu 系统
     runs-on: ubuntu-latest
+    # 定义此任务包含的步骤 (steps)
     steps:
+      # 步骤 1: 拉取代码
+      # 使用官方的 actions/checkout@v4 动作，将仓库代码下载到虚拟机中
       - uses: actions/checkout@v4
 
+      # 步骤 2: 设置 pnpm 包管理器
+      # 使用 pnpm/action-setup@v4 动作，安装并配置 pnpm
       - uses: pnpm/action-setup@v4
 
+      # 步骤 3: 安装项目依赖
+      # 执行 'pnpm install' 命令，根据 pnpm-lock.yaml 文件安装所有依赖包
       - run: pnpm i
 
+      # 步骤 4: 运行代码风格检查 (Lint)
+      # 执行 'pnpm run lint' 命令，通常会调用 ESLint 或其他工具检查代码格式和规范
       - run: pnpm run lint
 
+      # 步骤 5: 运行 TypeScript 类型检查
+      # 执行 'pnpm run type:check' 命令，调用 tsc (TypeScript Compiler) 检查代码中的类型错误
       - run: pnpm run type:check
 
+  # --- 任务 2: 运行测试 (Testing) ---
   test:
+    # 指定运行此任务的虚拟机环境
     runs-on: ubuntu-latest
+    # 定义此任务包含的步骤
     steps:
+      # 步骤 1: 拉取代码
       - uses: actions/checkout@v4
 
+      # 步骤 2: 设置 pnpm 包管理器
       - uses: pnpm/action-setup@v4
 
+      # 步骤 3: 安装项目依赖
       - run: pnpm i
 
+      # 步骤 4: 运行测试并生成覆盖率报告
+      # 执行 'pnpm run test:coverage' 命令，通常会运行单元测试（如 Vitest, Jest）并收集代码覆盖率信息
       - run: pnpm run test:coverage
 
+      # 步骤 5: 上传覆盖率报告到 Codecov
+      # 使用 codecov/codecov-action@v5 动作，将生成的覆盖率报告发送到 Codecov 服务
+      # 需要在 GitHub Secrets 中配置 CODECOV_TOKEN 用于认证
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # --- 任务 3: 发布提交处理 (Publish Commit) ---
+  # 这个任务的目的通常是为 npm 包发布做准备，例如使用 Changesets 工具
   publish-commit:
+    # 指定运行此任务的虚拟机环境
     runs-on: ubuntu-latest
+    # 定义此任务包含的步骤
     steps:
+      # 步骤 1: 拉取代码
       - uses: actions/checkout@v4
 
+      # 步骤 2: 设置 pnpm 包管理器
       - uses: pnpm/action-setup@v4
 
+      # 步骤 3: 安装项目依赖
       - run: pnpm i
 
+      # 步骤 4: 执行发布提交脚本
+      # 执行 'pnpm run packages:publish:commit' 命令
+      # 这个脚本的具体功能取决于项目配置，可能涉及版本更新、生成 changelog、打 tag 等操作
       - run: pnpm run packages:publish:commit

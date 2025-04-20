@@ -1,3 +1,165 @@
+# 代码阅读推荐顺序
+
+建议按以下顺序阅读代码，以更好地理解项目结构和核心逻辑：
+
+## 1. 项目根目录与配置
+
+- [`README.md`](./README.md) - 项目概览（当前文件）。
+- [`package.json`](./package.json) - 项目依赖和脚本。
+- [`pnpm-workspace.yaml`](./pnpm-workspace.yaml) - Monorepo 工作区配置。
+- [`turbo.json`](./turbo.json) - Turborepo 构建系统配置。
+- [`tsconfig.json`](./tsconfig.json) - TypeScript 基础配置。
+- [`LICENSE`](./LICENSE) - 项目许可证。
+- [`.gitignore`](./.gitignore) - Git 忽略配置。
+- [`.npmrc`](./.npmrc) - npm 配置。
+
+## 2. 核心 Packages
+
+### 2.1. `@orpc/shared` (共享工具库)
+
+- [`packages/shared/package.json`](./packages/shared/package.json)
+- [`packages/shared/src/index.ts`](./packages/shared/src/index.ts) - 包入口。
+- [`packages/shared/src/types.ts`](./packages/shared/src/types.ts) - 共享类型定义。
+
+### 2.2. `@orpc/contract` (API 契约定义)
+
+- [`packages/contract/package.json`](./packages/contract/package.json) - 包定义文件。
+- [`packages/contract/src/index.ts`](./packages/contract/src/index.ts) - 包入口。
+
+### 2.3. `@orpc/server` (服务端实现)
+
+- [`packages/server/package.json`](./packages/server/package.json) - 包定义文件。
+- [`packages/server/src/index.ts`](./packages/server/src/index.ts) - 包入口。
+- [`packages/server/src/router.ts`](./packages/server/src/router.ts) - 路由构建。
+- [`packages/server/src/middleware.ts`](./packages/server/src/middleware.ts) - 中间件实现。
+
+##### 2.3.1. Adapters (`packages/server/src/adapters/`)
+
+###### Fetch Adapter (`fetch/`)
+
+- [`packages/server/src/adapters/fetch/index.ts`](./packages/server/src/adapters/fetch/index.ts)
+- [`packages/server/src/adapters/fetch/handler.ts`](./packages/server/src/adapters/fetch/handler.ts)
+- [`packages/server/src/adapters/fetch/rpc-handler.ts`](./packages/server/src/adapters/fetch/rpc-handler.ts)
+- [`packages/server/src/adapters/fetch/plugin.ts`](./packages/server/src/adapters/fetch/plugin.ts)
+- [`packages/server/src/adapters/fetch/body-limit-plugin.ts`](./packages/server/src/adapters/fetch/body-limit-plugin.ts)
+- [`packages/server/src/adapters/fetch/handler.test.ts`](./packages/server/src/adapters/fetch/handler.test.ts)
+- [`packages/server/src/adapters/fetch/handler.test-d.ts`](./packages/server/src/adapters/fetch/handler.test-d.ts)
+- [`packages/server/src/adapters/fetch/rpc-handler.test.ts`](./packages/server/src/adapters/fetch/rpc-handler.test.ts)
+- [`packages/server/src/adapters/fetch/plugin.test.ts`](./packages/server/src/adapters/fetch/plugin.test.ts)
+- [`packages/server/src/adapters/fetch/plugin.test-d.ts`](./packages/server/src/adapters/fetch/plugin.test-d.ts)
+- [`packages/server/src/adapters/fetch/body-limit-plugin.test.ts`](./packages/server/src/adapters/fetch/body-limit-plugin.test.ts)
+
+###### Node Adapter (`node/`)
+
+- [`packages/server/src/adapters/node/index.ts`](./packages/server/src/adapters/node/index.ts)
+- [`packages/server/src/adapters/node/handler.ts`](./packages/server/src/adapters/node/handler.ts)
+- [`packages/server/src/adapters/node/rpc-handler.ts`](./packages/server/src/adapters/node/rpc-handler.ts)
+- [`packages/server/src/adapters/node/plugin.ts`](./packages/server/src/adapters/node/plugin.ts)
+- [`packages/server/src/adapters/node/body-limit-plugin.ts`](./packages/server/src/adapters/node/body-limit-plugin.ts)
+- [`packages/server/src/adapters/node/handler.test.ts`](./packages/server/src/adapters/node/handler.test.ts)
+- [`packages/server/src/adapters/node/handler.test-d.ts`](./packages/server/src/adapters/node/handler.test-d.ts)
+- [`packages/server/src/adapters/node/plugin.test.ts`](./packages/server/src/adapters/node/plugin.test.ts)
+- [`packages/server/src/adapters/node/plugin.test-d.ts`](./packages/server/src/adapters/node/plugin.test-d.ts)
+- [`packages/server/src/adapters/node/body-limit-plugin.test.ts`](./packages/server/src/adapters/node/body-limit-plugin.test.ts)
+
+###### Standard Adapter (`standard/`)
+
+- [`packages/server/src/adapters/standard/index.ts`](./packages/server/src/adapters/standard/index.ts)
+- [`packages/server/src/adapters/standard/types.ts`](./packages/server/src/adapters/standard/types.ts)
+- [`packages/server/src/adapters/standard/utils.ts`](./packages/server/src/adapters/standard/utils.ts)
+- [`packages/server/src/adapters/standard/rpc-matcher.ts`](./packages/server/src/adapters/standard/rpc-matcher.ts)
+- [`packages/server/src/adapters/standard/rpc-codec.ts`](./packages/server/src/adapters/standard/rpc-codec.ts)
+- [`packages/server/src/adapters/standard/handler.ts`](./packages/server/src/adapters/standard/handler.ts)
+- [`packages/server/src/adapters/standard/rpc-handler.ts`](./packages/server/src/adapters/standard/rpc-handler.ts)
+- [`packages/server/src/adapters/standard/plugin.ts`](./packages/server/src/adapters/standard/plugin.ts)
+- [`packages/server/src/adapters/standard/utils.test.ts`](./packages/server/src/adapters/standard/utils.test.ts)
+- [`packages/server/src/adapters/standard/utils.test-d.ts`](./packages/server/src/adapters/standard/utils.test-d.ts)
+- [`packages/server/src/adapters/standard/rpc-matcher.test.ts`](./packages/server/src/adapters/standard/rpc-matcher.test.ts)
+- [`packages/server/src/adapters/standard/rpc-codec.test.ts`](./packages/server/src/adapters/standard/rpc-codec.test.ts)
+- [`packages/server/src/adapters/standard/handler.test.ts`](./packages/server/src/adapters/standard/handler.test.ts)
+- [`packages/server/src/adapters/standard/rpc-handler.test.ts`](./packages/server/src/adapters/standard/rpc-handler.test.ts)
+- [`packages/server/src/adapters/standard/plugin.test.ts`](./packages/server/src/adapters/standard/plugin.test.ts)
+
+- [`packages/server/src/node/`](./packages/server/src/node/) - Node.js 特定实现。
+
+### 2.4. `@orpc/client` (客户端实现)
+
+- [`packages/client/package.json`](./packages/client/package.json)
+- [`packages/client/src/index.ts`](./packages/client/src/index.ts) - 包入口。
+- [`packages/client/src/client.ts`](./packages/client/src/client.ts) - 客户端核心实现。
+- [`packages/client/src/links/`](./packages/client/src/links/) - 不同传输方式的 Link (Fetch, SSE etc.).
+
+## 3. Schema 验证与 OpenAPI 集成
+
+### 3.1. `@orpc/zod`
+
+- [`packages/zod/package.json`](./packages/zod/package.json)
+- [`packages/zod/src/index.ts`](./packages/zod/src/index.ts) - Zod 适配与 OpenAPI 转换。
+
+### 3.2. `@orpc/valibot`
+
+- [`packages/valibot/package.json`](./packages/valibot/package.json)
+- [`packages/valibot/src/index.ts`](./packages/valibot/src/index.ts) - Valibot 适配与 OpenAPI 转换。
+
+### 3.3. `@orpc/arktype`
+
+- [`packages/arktype/package.json`](./packages/arktype/package.json)
+- [`packages/arktype/src/index.ts`](./packages/arktype/src/index.ts) - ArkType 适配与 OpenAPI 转换。
+
+### 3.4. `@orpc/openapi`
+
+- [`packages/openapi/package.json`](./packages/openapi/package.json)
+- [`packages/openapi/src/index.ts`](./packages/openapi/src/index.ts) - 包入口。
+- [`packages/openapi/src/schema.ts`](./packages/openapi/src/schema.ts) - Schema 相关定义。
+
+### 3.5. `@orpc/openapi-client`
+
+- [`packages/openapi-client/package.json`](./packages/openapi-client/package.json)
+- [`packages/openapi-client/src/index.ts`](./packages/openapi-client/src/index.ts) - 包入口。
+
+## 4. 前端框架集成
+
+### 4.1. `@orpc/react` & `@orpc/react-query`
+
+- [`packages/react/package.json`](./packages/react/package.json)
+- [`packages/react/src/index.ts`](./packages/react/src/index.ts) - React 工具和 Server Actions 支持。
+- [`packages/react-query/package.json`](./packages/react-query/package.json)
+- [`packages/react-query/src/index.ts`](./packages/react-query/src/index.ts) - React Query 集成。
+
+### 4.2. Vue 集成 (@orpc/vue-query & @orpc/vue-colada)
+
+- [`packages/vue-query/package.json`](./packages/vue-query/package.json)
+- [`packages/vue-query/src/index.ts`](./packages/vue-query/src/index.ts) - Vue Query 集成。
+- [`packages/vue-colada/package.json`](./packages/vue-colada/package.json)
+- [`packages/vue-colada/src/index.ts`](./packages/vue-colada/src/index.ts) - Vue Colada 集成。
+
+### 4.3. `@orpc/svelte-query`
+
+- [`packages/svelte-query/package.json`](./packages/svelte-query/package.json)
+- [`packages/svelte-query/src/index.ts`](./packages/svelte-query/src/index.ts) - Svelte Query 集成。
+
+### 4.4. `@orpc/solid-query`
+
+- [`packages/solid-query/package.json`](./packages/solid-query/package.json)
+- [`packages/solid-query/src/index.ts`](./packages/solid-query/src/index.ts) - Solid Query 集成。
+
+## 贡献指南
+
+欢迎各种形式的贡献，包括但不限于：
+
+- 报告 Bug
+- 提交 Pull Request
+- 参与讨论
+
+## CI/CD 与其他
+
+- [`.github/workflows/ci.yaml`](./.github/workflows/ci.yaml) - CI 配置。
+- [`.github/workflows/release.yaml`](./.github/workflows/release.yaml) - Release 配置。
+- [`.github/workflows/release-next.yaml`](./.github/workflows/release-next.yaml) - Next Release 配置。
+- [`.github/FUNDING.yml`](./.github/FUNDING.yml) - GitHub Sponsors 配置。
+- [`.vscode/settings.json`](./.vscode/settings.json) - VS Code 编辑器配置。
+
+---
 <div align="center">
   <image align="center" src="https://orpc.unnoq.com/logo.webp" width=280 alt="oRPC logo" />
 </div>

@@ -1,35 +1,61 @@
+# GitHub Actions 工作流程的名称，表明用于发布 @next 版本
 name: Release @next
 
+# 定义工作流程触发的事件
 on:
+  # 当有代码推送到 main 分支时触发
   push:
     branches: [main]
 
+# 定义工作流程包含的任务 (jobs)
 jobs:
+  # --- 任务: 发布 @next 版本 (release-next) ---
   release-next:
+    # 指定运行此任务的虚拟机环境
     runs-on: ubuntu-latest
+    # 为此任务授予的权限
     permissions:
-      contents: read
-      id-token: write
+      contents: read # 只需要读取仓库内容权限（用于 checkout）
+      id-token: write # 允许获取 OIDC ID 令牌（用于 npm provenance）
+    # 定义此任务包含的步骤 (steps)
     steps:
+      # 步骤 1: 拉取代码
       - uses: actions/checkout@v4
 
+      # 步骤 2: 设置 pnpm 包管理器
       - uses: pnpm/action-setup@v4
 
+      # 步骤 3: 安装项目依赖
       - run: pnpm i
 
+      # 步骤 4: 配置 Git 用户信息
+      # 虽然此流程不推送代码，但某些 bump 脚本可能需要 Git 配置
       - run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      # 步骤 5: 获取当前 Commit 的短哈希值
+      # 使用 git rev-parse --short HEAD 获取短 SHA
       - run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        id: commit
+        id: commit # 给此步骤设置 ID，方便后续引用 short_sha 输出
 
+      # 步骤 6: 升级包版本为 next 版本
+      # 执行 'pnpm run packages:bump 0.0.0-next.<short-sha> --yes --no-push' 命令
+      # 将版本号更新为基于 commit SHA 的预发布版本，例如 0.0.0-next.a1b2c3d
+      # --yes 跳过确认
+      # --no-push 表示这次版本更新不会被 commit 和 push 回代码仓库
       - run: pnpm run packages:bump 0.0.0-next.${{ steps.commit.outputs.short_sha }} --yes --no-push
 
+      # 步骤 7: 配置 npm 认证令牌
       - run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN}"
         env:
+          # 从 GitHub Secrets 中读取 NPM_TOKEN
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # 步骤 8: 发布包到 npm 并打上 'next' 标签
+      # 执行 'pnpm run packages:publish --tag=next' 命令
+      # 将带有 0.0.0-next.<short-sha> 版本号的包发布到 npm，并指定其标签为 'next'
       - run: pnpm run packages:publish --tag=next
         env:
+          # 启用 npm provenance
           NPM_CONFIG_PROVENANCE: true
